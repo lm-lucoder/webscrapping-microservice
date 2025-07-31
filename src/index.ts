@@ -95,7 +95,8 @@ app.post('/scrape', async (req: Request, res: Response) => {
   }
 
   try {
-    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(tema)}+blog+ou+portal+de+notícias`;
+    const toSearchTheme = tema.split(" ").join("+") + "+blog+ou+portal+de+notícias";
+    const searchUrl = `https://www.bing.com/search?q=${toSearchTheme}`;
     const response = await fetch(searchUrl);
     const html = await response.text();
     const $ = cheerio.load(html);
@@ -108,7 +109,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
     const topLinks = links.slice(0, 5);
 
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
     const results: ScrapeResult[] = [];
 
