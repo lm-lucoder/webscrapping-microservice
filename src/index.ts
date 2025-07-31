@@ -4,30 +4,12 @@ import * as cheerio from 'cheerio';
 import puppeteer from 'puppeteer';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
+import extractMainContent from './utils/extractMainContent';
+import removeAccents from './utils/removeAccents';
 
 const app = express();
 app.use(express.json());
 
-// Função para extrair conteúdo principal com Readability
-function extractMainContent(html: string, url: string) {
-  try {
-    const dom = new JSDOM(html, { url: url });
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    if (article) {
-      return {
-        title: article.title || undefined,
-        textContent: article.textContent?.replace(/\s+/g, ' ').trim(),
-        excerpt: article.excerpt || undefined
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('Erro ao processar com Readability:', error);
-    return null;
-  }
-}
 
 interface ScrapeRequestBody {
   tema: string;
@@ -51,10 +33,16 @@ app.post('/scrape', async (req: Request, res: Response) => {
   }
 
   try {
-    const toSearchTheme = tema.split(" ").join("+") + "+blog+ou+portal+de+notícias";
+    const toSearchTheme = removeAccents(tema).split(" ").join("+") + "+blog+ou+portal+de+notícias";
     const searchUrl = `https://www.bing.com/search?q=${toSearchTheme}`;
+    /* const query = `"${tema}" (blog OR "portal de notícias")`;
+    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`; */
     console.log(searchUrl);
-    const response = await fetch(searchUrl);
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36'
+      }
+    });
     const html = await response.text();
     const $ = cheerio.load(html);
 
